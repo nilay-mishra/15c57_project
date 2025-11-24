@@ -3,6 +3,7 @@ from shapely.geometry import shape, Point
 import matplotlib.pyplot as plt
 import requests
 import csv
+import osmnx as ox
 
 def get_massachusetts_polygon():
     url = "https://raw.githubusercontent.com/python-visualization/folium/master/examples/data/us-states.json"
@@ -48,3 +49,25 @@ val_points = generate_grid_points(ma_poly)
 with open("possible_facilities.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerows(val_points)
+
+G = ox.graph_from_place("Massachusetts, USA", network_type="drive")
+
+# Find the nearest actual road node to your random point
+nearest_node = ox.distance.nearest_nodes(G, X=-71.0589, Y=42.3601)
+node_data = G.nodes[nearest_node]
+print(f"Nearest Road Coordinate: {node_data['y']},{node_data['x']}")
+
+plant_locations = []
+with open("raw_plant_locations.csv", "r") as f:
+    reader = csv.reader(f)
+    for row in reader:
+        if row[1] == " " or row[2] == " ":
+            continue
+        latitude = float(row[1])
+        longitude = float(row[2])
+        loc = Point(longitude, latitude)
+        if ma_poly.contains(loc):
+            plant_locations.append((latitude, longitude))
+with open("cleaned_plant_locations.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerows(plant_locations)
