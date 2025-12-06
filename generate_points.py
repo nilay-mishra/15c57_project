@@ -3,7 +3,8 @@ from shapely.geometry import shape, Point
 import matplotlib.pyplot as plt
 import requests
 import csv
-import osmnx as ox
+import pandas as pd
+# import osmnx as ox
 
 def get_massachusetts_polygon():
     url = "https://raw.githubusercontent.com/python-visualization/folium/master/examples/data/us-states.json"
@@ -50,24 +51,38 @@ with open("possible_facilities.csv", "w", newline="") as f:
     writer = csv.writer(f)
     writer.writerows(val_points)
 
+"""
 G = ox.graph_from_place("Massachusetts, USA", network_type="drive")
 
 # Find the nearest actual road node to your random point
 nearest_node = ox.distance.nearest_nodes(G, X=-71.0589, Y=42.3601)
 node_data = G.nodes[nearest_node]
 print(f"Nearest Road Coordinate: {node_data['y']},{node_data['x']}")
+"""
 
 plant_locations = []
+plant_locations_dict = {}
 with open("raw_plant_locations.csv", "r") as f:
     reader = csv.reader(f)
     for row in reader:
         if row[1] == " " or row[2] == " ":
             continue
+        plant_code = int(row[0])
         latitude = float(row[1])
         longitude = float(row[2])
         loc = Point(longitude, latitude)
         if ma_poly.contains(loc):
-            plant_locations.append((latitude, longitude))
-with open("cleaned_plant_locations.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerows(plant_locations)
+            plant_locations.append((plant_code, latitude, longitude))
+            plant_locations_dict[plant_code] = (latitude, longitude)
+
+first_df = pd.read_excel('3_3_Solar_Y2019.xlsx', sheet_name='Operable', skiprows=1)
+second_df = (
+    pd.DataFrame.from_dict(plant_locations_dict, orient="index", columns=["Latitude", "Longitude"])
+    .reset_index()
+    .rename(columns={"index": "Plant Code"})
+)
+new_df = first_df.merge(second_df, on="Plant Code", how="left")
+new_df = new_df.dropna(subset=["Latitude", "Longitude"])
+new_df = new_df[["Plant Code", "Latitude", "Longitude", "Operating Year", "DC Net Capacity (MW)"]]
+new_df.sort_values(by="Plant Code", inplace=True)
+new_df.to_csv("cleaned_plant_locations.csv", index=False, header=False)

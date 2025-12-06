@@ -22,8 +22,8 @@ plant_locations = []
 with open("cleaned_plant_locations.csv", "r") as f:
     reader = csv.reader(f)
     for row in reader:
-        latitude = float(row[0])
-        longitude = float(row[1])
+        latitude = float(row[1])
+        longitude = float(row[2])
         plant_locations.append((latitude, longitude))
 
 facility = possible_facilities[0]
@@ -84,7 +84,7 @@ if os.path.exists(log_file):
 
 # Generate tasks
 pairs = []
-rows, cols = len(possible_facilities), 100
+rows, cols = len(possible_facilities), len(plant_locations)
 for idx1, facility in enumerate(possible_facilities[:rows]):
     for idx2, plant in enumerate(plant_locations[:cols]):
         indices = [idx1, idx2]
